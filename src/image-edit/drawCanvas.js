@@ -67,7 +67,7 @@ export default class DrawCanvas {
         this.clearCanvas()
         this.canvas.width = innerWidth
         this.canvas.height = innerHeight
-        ctx.scale(this.scale, this.scale)  // todo 是否需要进行缩放，是否在外层处理
+        ctx.scale(this.scale, this.scale)
     }
     init() {
         this.showText = false

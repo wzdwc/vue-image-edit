@@ -383,7 +383,6 @@
                     scale: this.scale,
                 })
                 this.currCtx = this.drawLineCtx
-                this.getCurrentRemark()
             }
         }
     }
