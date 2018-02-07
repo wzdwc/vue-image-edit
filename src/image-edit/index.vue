@@ -13,9 +13,13 @@
                 span 编辑图片
                 span.btn(@click="saveImage") 确认
             .canvas-container
-                canvas(ref="drawCanvas"
-                    @touchstart="start" @touchmove="move" @touchend="end"
-                        @mousedown="down" @mousemove="mouseMove" @mouseup="mouseUp")
+                canvas(ref="imageCanvas")
+                canvas(ref="drawCanvasLine",:class='{zIndex: setting.type==="line"}',
+                @touchstart="start" @touchmove="move" @touchend="end"
+                    @mousedown="down" @mousemove="mouseMove" @mouseup="mouseUp")
+                canvas(ref="drawCanvasRect",:class='{zIndex: setting.type==="rect"}',
+                @touchstart="start" @touchmove="move" @touchend="end"
+                    @mousedown="down" @mousemove="mouseMove" @mouseup="mouseUp")
                 .input-text.font-size-50(v-show="showText")
                     .mask(@click="focus = false")
                     span(@click="clickHandle()",
@@ -27,21 +31,22 @@
                     ref = "textMsg",
                     :class="{active:focus}",:style="textStylePx") {{currentText}}
             .color-chose
-                div(v-for="color in colors", @click="setting.color = color")
+                div(v-for="color in colors", @click="selectColor(color)")
                     span.color-item(:style="{background:color}",
                     :class="{active: color === setting.color}")
-                div.rect
-                    span(:class="{active: 'rect' === setting.type}",@click="setting.type = 'rect'")
-                div.line
-                    span(:class="{active: 'line' === setting.type}",@click="setting.type = 'line'")
+                div.rect(@click="selectOption('rect')")
+                    span(:class="{active: 'rect' === setting.type}")
+                div.line(@click="selectOption('line')")
+                    span(:class="{active: 'line' === setting.type}")
                 div(@click="showEditor()")
-                    i.iconfont.icon-t.font-size-36
-                div(@click="initEditor()")
+                    i.iconfont.icon-t.font-size-36(:class="{active: 'text' === setting.type}")
+                div(@click="init()")
                     i.iconfont.icon-delete.font-size-36
 </template>
 
 <script>
     import {getDpr} from '@/utils/DataDprUtil.js'
+    import DrawCanvas from './drawCanvas'
     export default {
         props   : ['value', 'img'],
         computed: {
@@ -52,9 +57,6 @@
                 set(val) {
                     this.$emit('input', val)
                 }
-            },
-            drawCanvas() {
-                return this.$refs.drawCanvas
             },
             textMsg() {
                 return this.$refs.textMsg
@@ -93,16 +95,16 @@
         data() {
             const colors = ['#ff2b2b', '#f7ff5e', '#5489ff']
             return {
+                drawLineCtx: {},
+                drawRectCtx: {},
+                currCtx    : {},
+                imgCanvas  : {},
                 colors,
-                offsetTop : 0,
-                offsetLeft: 0,
-                scale     : 0,
-                touchScale: 1,
-                drawType  : 'rect',
-                startX    : 0,
-                startY    : 0,
-                ctx       : {},
-                setting   : {
+                offsetTop  : 0,
+                offsetLeft : 0,
+                scale      : 0,
+                ctx        : {},
+                setting    : {
                     baseLineWidth: 5,
                     color        : colors[0],
                     type         : 'line',
@@ -119,7 +121,6 @@
                 showTextEditor : false,
                 moveMouseIsDown: false,
                 focus          : true,
-                imgObj         : {},
                 textOffset     : {clientX: 0, clientY: 120},
                 isClick        : false
             }
@@ -128,12 +129,57 @@
             editImageDialog(val) {
                 if (val) {
                     this.$nextTick(() => {
-                        this.initEditor()
-                })
+                        this.init()
+                    })
                 }
             },
         },
         methods: {
+            saveImage() {
+                this.drawTextToCanvas()
+                let imgData = this.imgCanvas.toDataURL('image/png')
+                let lineData = this.drawLineCtx.canvas.toDataURL('image/png')
+                let rectData = this.drawRectCtx.canvas.toDataURL('image/png')
+                let height = this.imgCanvas.height / 2
+                let width = this.imgCanvas.width / 2
+                let canvas = this.$refs.hiddenCanvas
+                let ctx = canvas.getContext('2d')
+                canvas.width = width
+                canvas.height = height
+                let imgs = [imgData, lineData, rectData]
+                imgs.forEach(imgSrc => {
+                    let img = new Image()
+                    img.src = imgSrc
+                    img.onload = async () => {
+                        ctx.drawImage(img, 0, 0, width, height)
+                    }
+                })
+            },
+            getPoint(e) {
+                let touch = e.touches[0] || e.changedTouches[0]
+                return this.getPointByClientPoint(touch)
+            },
+            getPointByClientPoint({clientX, clientY}) {
+                this.countOffset()
+                let x = (clientX - this.offsetLeft) / this.scale
+                let y = (clientY - this.offsetTop) / this.scale
+                return { x, y }
+            },
+            countOffset(dom = this.imgCanvas) {
+                this.offsetTop = dom.offsetParent.offsetTop
+                this.offsetLeft = dom.offsetParent.offsetLeft
+            },
+            selectColor(color) {
+                this.setting.color = color
+            },
+            selectOption(type) {
+                let Obj = {
+                    rect: 'drawRectCtx',
+                    line: 'drawLineCtx'
+                }
+                this.setting.type = type
+                this.currCtx = this[Obj[type]]
+            },
             getCurrentRemark() {
                 let i = 0
                 let imgList = this.$store.state.verify.imgUpdateList
@@ -155,7 +201,7 @@
                     // pc端处理双击
                     setTimeout(() => {
                         this.isClick = false
-                }, 300)
+                    }, 300)
                 } else {
                     if (this.focus) {
                         this.showEditor()
@@ -166,6 +212,7 @@
             showEditor() {
                 this.showText = false
                 this.showTextEditor = true
+                this.setting.type = 'text'
             },
             addText() {
                 this.showText = true
@@ -173,7 +220,7 @@
             },
             canvasTextAutoLine(str, ctx, x, y, lineHeight) {
                 let lineWidth = 0
-                let canvasWidth = this.drawCanvas.width
+                let canvasWidth = this.imgCanvas.width
                 let lastSubStrIndex = 0
                 let initX = x
                 let initY = y
@@ -240,137 +287,102 @@
             },
             down(e) {
                 this.mouseIsDown = true
-                this.draw(this.getPointByClientPoint(e))
+                this.currCtx.draw(this.getPointByClientPoint(e))
             },
             mouseMove(e) {
                 if (this.mouseIsDown) {
-                    this.draw(this.getPointByClientPoint(e), 'move')
+                    this.currCtx.draw(this.getPointByClientPoint(e), 'move')
                 }
             },
             mouseUp() {
                 this.mouseIsDown = false
             },
-            clearCanvas() {
-                let cxt = this.drawCanvas.getContext('2d')
-                cxt.clearRect(0, 0, this.drawCanvas.width / this.scale, this.drawCanvas.height / this.scale)
-            },
-            saveImage() {
-                this.drawTextToCanvas()
-                let drawData = this.drawCanvas.toDataURL('image/png')
-                let img = new Image()
-                img.src = drawData
-                img.onload = async () => {
-                    let height = this.drawCanvas.height / 2
-                    let width = this.drawCanvas.width / 2
-                    let canvas = this.$refs.hiddenCanvas
-                    let ctx = canvas.getContext('2d')
-                    canvas.width = width
-                    canvas.height = height
-                    ctx.drawImage(img, 0, 0, width, height)
-                    let base = canvas.toDataURL('image/png')
-                    this.$emit('success', base)
-                }
-            },
-            draw({ x, y }, type = 'start') {
-                let ctx = this.ctx
-                switch (type) {
-                    case 'start':
-                        if (this.setting.type === 'line') {
-                            this.drawLine(ctx, {x, y})
-                        }
-                        this.startX = x
-                        this.startY = y
-                        break
-                    case 'move':
-                        if (this.setting.type === 'line') {
-                            ctx.lineTo(x, y)
-                        }
-                        if (this.setting.type === 'rect') {
-                            this.canvasInit()
-                            ctx.lineWidth = this.lineWidth
-                            ctx.strokeStyle = this.setting.color
-                            ctx.lineCap = 'round'
-                            ctx.beginPath()
-                            ctx.rect(this.startX, this.startY, x - this.startX, y - this.startY)
-                        }
-                        break
-                    }
-                ctx.stroke()
-            },
-            drawLine(ctx, {x, y}) {
-                ctx.lineWidth = this.lineWidth
-                ctx.strokeStyle = this.setting.color
-                ctx.lineCap = 'round'
-                ctx.beginPath()
-                ctx.fill()
-                ctx.moveTo(x, y)
-                ctx.lineTo(x, y)
-            },
-            countOffset(dom = this.drawCanvas) {
-                this.offsetTop = dom.offsetParent.offsetTop
-                this.offsetLeft = dom.offsetParent.offsetLeft
-            },
-            getPoint(e) {
-                let touch = e.touches[0]
-                return this.getPointByClientPoint(touch)
-            },
-            getPointByClientPoint({clientX, clientY}) {
-                this.countOffset()
-                let x = (clientX - this.offsetLeft) / this.scale
-                let y = (clientY - this.offsetTop) / this.scale
-                return { x, y }
-            },
             start(e) {
-                this.draw(this.getPoint(e), 'start')
+                this.currCtx.draw(this.getPoint(e), 'start')
             },
             move(e) {
-                this.draw(this.getPoint(e), 'move')
+                this.currCtx.draw(this.getPoint(e), 'move')
             },
-            end() {
-                // this.$toast('touch end')
-            },
-            imageInit(img = this.img) {
-                let imgDom = new Image()
-                this.$loading()
-                imgDom.onload = () => {
-                    if (imgDom.complete) {
-                        this.imgObj = imgDom
-                        this.canvasInit()
-                        this.$loaded()
+            end(e) {
+                if (this.currCtx.setting.type === 'rect') {
+                    let {x, y} = this.getPoint(e)
+                    let point = {
+                        startPoint: {
+                            x: this.currCtx.startPoint.x,
+                            y: this.currCtx.startPoint.y
+                        },
+                        endPoint: {
+                            x: x,
+                            y: y
+                        }
                     }
+                    this.currCtx.rectPoint.push(point)
                 }
-                imgDom.onerror = (e) => {
-                    console.error(e)
+            },
+            imageLoad(img) {
+                return new Promise((resolve, reject) => {
+                    let imgDom = new Image()
+                    imgDom.onload = () => {
+                        if (imgDom.complete) {
+                            resolve(imgDom)
+                        }
+                    }
+                    imgDom.onerror = (e) => {
+                        reject(e)
+                    }
+                    imgDom.crossOrigin = '*'
+                    imgDom.src = img.imgUrl + `?t=${Date.now}`
+                })
+            },
+            async imageInit() {
+                try {
+                    this.$loading()
+                    let imgDom = await this.imageLoad(this.img)
+                    this.imgCanvas = this.$refs.imageCanvas
+                    let {clientWidth: innerWidth, clientHeight: innerHeight} = this.imgCanvas.parentElement // 画布的高宽
+                    let imgCtx = this.imgCanvas.getContext('2d')
+                    let scale = innerWidth / imgDom.width
+                    let scaleHeight = imgDom.height * scale
+                    this.ctx = imgCtx
+                    if (scaleHeight > innerHeight) { // 如果百分百宽之后高超过画布高 则以高为基准
+                        scale = innerHeight / imgDom.height
+                        scaleHeight = imgDom.height * scale
+                    }
+                    let scaleWidth = imgDom.width * scale
+                    this.imgCanvas.width = innerWidth
+                    this.imgCanvas.height = innerHeight
+                    this.scale = scale
+                    imgCtx.scale(scale, scale)
+                    imgCtx.drawImage(imgDom, (innerWidth - scaleWidth) / 2 / scale, (innerHeight - scaleHeight) / 2 / scale)
+                } catch (e) {
                     this.$loaded()
-                    this.editImageDialog = false
-                    this.$alert('图片加载失败').then(() => {
-                    })
+                    // this.editImageDialog = false
+                    this.$toast(e.msg)
+                } finally {
+                    this.$loaded()
                 }
-                imgDom.crossOrigin = '*'
-                imgDom.src = img.imgUrl + `?t=${Date.now}`
             },
-            canvasInit() {
-                let {clientWidth: innerWidth, clientHeight: innerHeight} = this.drawCanvas.parentElement // 画布的高宽
-                let ctx = this.drawCanvas.getContext('2d')
-                let imgDom = this.imgObj
-                let scale = innerWidth / imgDom.width
-                let scaleHeight = imgDom.height * scale
-                this.ctx = ctx
-                this.clearCanvas()
-                if (scaleHeight > innerHeight) { // 如果百分百宽之后高超过画布高 则以高为基准
-                    scale = innerHeight / imgDom.height
-                    scaleHeight = imgDom.height * scale
-                }
-                let scaleWidth = imgDom.width * scale
-                this.drawCanvas.width = innerWidth
-                this.drawCanvas.height = innerHeight
-                this.scale = scale
-                ctx.scale(scale, scale)
-                ctx.drawImage(imgDom, (innerWidth - scaleWidth) / 2 / scale, (innerHeight - scaleHeight) / 2 / scale)
-            },
-            initEditor() {
-                this.showText = false
-                this.imageInit()
+            async init() {
+                await this.imageInit()
+                this.drawLineCtx = new DrawCanvas({
+                    canvas : this.$refs.drawCanvasLine,
+                    setting: {
+                        type     : 'line',
+                        lineWidth: this.setting.baseLineWidth,
+                        color    : this.setting.color,
+                    },
+                    scale: this.scale,
+                })
+                this.drawRectCtx = new DrawCanvas({
+                    canvas : this.$refs.drawCanvasRect,
+                    setting: {
+                        type     : 'rect',
+                        lineWidth: this.setting.baseLineWidth,
+                        color    : this.setting.color,
+                    },
+                    scale: this.scale,
+                })
+                this.currCtx = this.drawLineCtx
                 this.getCurrentRemark()
             }
         }
@@ -382,6 +394,9 @@
             max-width: 100%;
             width: 100%;
             border-radius: 0 !important;
+        }
+        .zIndex{
+            z-index: 999;
         }
     }
     .input-text{
@@ -486,6 +501,11 @@
             justify-content: center;
             align-items: center;
             overflow: auto;
+            canvas{
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
         }
         .color-chose{
             color: #fff;
@@ -528,6 +548,11 @@
                     &.active{
                         background-color: @primary-color;
                     }
+                }
+            }
+            i{
+                &.active{
+                    color: @primary-color;
                 }
             }
         }
