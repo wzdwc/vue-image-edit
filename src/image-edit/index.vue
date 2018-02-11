@@ -137,7 +137,6 @@
         methods: {
             saveImage() {
                 this.drawTextToCanvas()
-                debugger
                 let imgData = this.imgCanvas.toDataURL('image/png')
                 let lineData = this.drawLineCtx.canvas.toDataURL('image/png')
                 let rectData = this.drawRectCtx.canvas.toDataURL('image/png')
