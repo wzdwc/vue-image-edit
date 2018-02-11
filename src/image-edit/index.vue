@@ -45,8 +45,11 @@
 </template>
 
 <script>
-    import {getDpr} from '@/utils/DataDprUtil.js'
     import DrawCanvas from './drawCanvas'
+    function getDpr() {
+        let dpr = document.querySelector('html').getAttribute('data-dpr')
+        return parseInt(dpr)
+    }
     export default {
         props   : ['value', 'img'],
         computed: {
@@ -82,9 +85,6 @@
                 pxStyle.fontSize = textStyle.fontSize * getDpr() + 'px'
                 pxStyle.color = this.setting.color
                 return pxStyle
-            },
-            currentOptionId() {
-                return this.$store.state.verify.currentOptionId
             },
             isPC() {
                 let isAndroid = window.navigator.appVersion.match(/android/gi)
@@ -137,6 +137,7 @@
         methods: {
             saveImage() {
                 this.drawTextToCanvas()
+                debugger
                 let imgData = this.imgCanvas.toDataURL('image/png')
                 let lineData = this.drawLineCtx.canvas.toDataURL('image/png')
                 let rectData = this.drawRectCtx.canvas.toDataURL('image/png')
@@ -147,11 +148,15 @@
                 canvas.width = width
                 canvas.height = height
                 let imgs = [imgData, lineData, rectData]
-                imgs.forEach(imgSrc => {
+                imgs.forEach((imgSrc, index) => {
                     let img = new Image()
                     img.src = imgSrc
                     img.onload = async () => {
                         ctx.drawImage(img, 0, 0, width, height)
+                        let base = canvas.toDataURL('image/png')
+                        if (index === imgs.length - 1) {
+                            this.$emit('success', base)
+                        }
                     }
                 })
             },
@@ -179,17 +184,6 @@
                 }
                 this.setting.type = type
                 this.currCtx = this[Obj[type]]
-            },
-            getCurrentRemark() {
-                let i = 0
-                let imgList = this.$store.state.verify.imgUpdateList
-                imgList.ImgIds.forEach((img, index) => {
-                    if (img === this.currentOptionId) {
-                        i = index
-                        return false
-                    }
-                })
-                this.currentText = imgList.remarks[i]
             },
             clickHandle() {
                 if (this.isPC) {
@@ -336,7 +330,6 @@
             },
             async imageInit() {
                 try {
-                    this.$loading()
                     let imgDom = await this.imageLoad(this.img)
                     this.imgCanvas = this.$refs.imageCanvas
                     let {clientWidth: innerWidth, clientHeight: innerHeight} = this.imgCanvas.parentElement // 画布的高宽
@@ -355,11 +348,8 @@
                     imgCtx.scale(scale, scale)
                     imgCtx.drawImage(imgDom, (innerWidth - scaleWidth) / 2 / scale, (innerHeight - scaleHeight) / 2 / scale)
                 } catch (e) {
-                    this.$loaded()
-                    // this.editImageDialog = false
-                    this.$toast(e.msg)
+                    this.$emit('error', e)
                 } finally {
-                    this.$loaded()
                 }
             },
             async init() {
