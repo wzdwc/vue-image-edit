@@ -1,4 +1,4 @@
-import imageEdit from 'src/image-edit.vue'
+import imageEdit from 'src/image-edit/'
 export {
     imageEdit
 }
