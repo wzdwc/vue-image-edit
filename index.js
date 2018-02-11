@@ -1,4 +1,4 @@
-import EditImageDialog from 'src/image-edit/index.vue'
+import EditImageDialog from './src/image-edit/index.vue'
 export {
     EditImageDialog
 }

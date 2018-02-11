@@ -1,6 +1,6 @@
 {
   "name": "vue-image-edit",
-  "version": "1.0.1",
+  "version": "1.0.13",
   "description": "image edit for vue",
   "main": "index.js",
   "scripts": {
