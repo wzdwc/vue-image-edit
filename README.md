@@ -2,13 +2,13 @@ vue-image-edit
 ==============
 [![NPM version][npm-image]][npm-url]
 [![build status][travis-image]][npm-url]
-[![vue version][vue-image]][vue-url]
+[![vue version][vue-image]][npm-url]
+
 [npm-image]: https://img.shields.io/npm/v/npm.svg
 [npm-url]: https://www.npmjs.com/package/vue-image-edit
 [travis-image]: https://img.shields.io/badge/build-passing-brightgreen.svg
 [vue-image]: https://img.shields.io/badge/vue-v2.3.3-blue.svg
 [vue-url]: https://vuejs.org/
-
 
 > vue的图片编辑组件，兼容pc、移动端
 
