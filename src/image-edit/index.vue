@@ -1,5 +1,5 @@
 <template lang="pug">
-    x-dialog.edit-image-dialog(:hide-on-blur="true", :scroll="false", v-model="editImageDialog")
+    xDialog.edit-image-dialog(:hide-on-blur="true", :scroll="false", v-model="editImageDialog")
         canvas(ref="hiddenCanvas" v-show="false")
         .input-text-editor(v-show="showTextEditor")
             .text-container
@@ -45,14 +45,16 @@
 </template>
 
 <script>
+    import xDialog from 'vux/src/components/x-dialog'
     import DrawCanvas from './drawCanvas'
     function getDpr() {
         let dpr = document.querySelector('html').getAttribute('data-dpr')
         return parseInt(dpr)
     }
     export default {
-        props   : ['value', 'img'],
-        computed: {
+        props     : ['value', 'img'],
+        components: {xDialog},
+        computed  : {
             editImageDialog: {
                 get() {
                     return this.value
@@ -377,6 +379,7 @@
     }
 </script>
 <style lang="less" rel="stylesheet/less">
+    @import "../../assets/style/font/iconfont.css";
     .edit-image-dialog{
         .weui-dialog{
             max-width: 100%;
