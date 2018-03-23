@@ -33,7 +33,7 @@ export default class DrawCanvas {
                         this.drawRect(ctx, rect.startPoint, rect.endPoint, rect.color)
                     })
                 }
-                this.drawRect(ctx, this.startPoint, {x, y})
+                this.drawRect(ctx, this.startPoint, {x, y}, this.setting.color)
             }
             break
         }
