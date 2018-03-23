@@ -4,7 +4,7 @@ export default class DrawCanvas {
         this.setting = config.setting
         this.scale = config.scale
         this.startPoint = {x: 0, y: 0}
-        this.rectPoint = []
+        this.rectList = []
         this.ctx = {}
         this.init()
     }
@@ -28,9 +28,9 @@ export default class DrawCanvas {
             if (this.setting.type === 'rect') {
                 this.canvasInit()
                 // 是否已经画过
-                if (this.rectPoint.length !== 0) {
-                    this.rectPoint.forEach(rect => {
-                        this.drawRect(ctx, rect.startPoint, rect.endPoint)
+                if (this.rectList.length !== 0) {
+                    this.rectList.forEach(rect => {
+                        this.drawRect(ctx, rect.startPoint, rect.endPoint, rect.color)
                     })
                 }
                 this.drawRect(ctx, this.startPoint, {x, y})
@@ -39,9 +39,9 @@ export default class DrawCanvas {
         }
         ctx.stroke()
     }
-    drawRect(ctx, startPoint, endPoint) {
+    drawRect(ctx, startPoint, endPoint, color) {
         ctx.lineWidth = this.setting.lineWidth
-        ctx.strokeStyle = this.setting.color
+        ctx.strokeStyle = color
         ctx.lineCap = 'round'
         ctx.beginPath()
         ctx.rect(startPoint.x, startPoint.y, endPoint.x - startPoint.x, endPoint.y - startPoint.y)
@@ -71,7 +71,7 @@ export default class DrawCanvas {
     }
     init() {
         this.showText = false
-        this.rectPoint = []
+        this.rectList = []
         this.clearCanvas()
         this.canvasInit()
     }

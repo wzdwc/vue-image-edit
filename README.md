@@ -20,26 +20,28 @@ npm install vue-image-edit
 ### usage
 
 ```
-<template lang="pug">
-      EditImageDialog(v-model="editImageDialog", :img="editImage", @success="editImageSuccess")
-</template>
-<script>
-    import {EditImageDialog} from 'vue-image-edit'
-    export default {
-        data() {
-            return {
-                // 弹出图片编辑框
-                editImageDialog: false,
-                // 图片地址
-                editImage      : '/url/statice/image/1.png'
-            }
-        },
-        methods: {
-            async editImageSuccess(base) {
-                // base 为编辑之后的图片base64文件
+
+    <template lang="pug">
+          EditImageDialog(v-model="editImageDialog", :img="editImage", @success="editImageSuccess")
+    </template>
+    <script>
+        import {EditImageDialog} from 'vue-image-edit'
+        export default {
+            data() {
+                return {
+                    // 弹出图片编辑框
+                    editImageDialog: false,
+                    // 图片地址
+                    editImage      : '/url/statice/image/1.png'
+                }
             },
-        },
-        components: {EditImageDialog},
-    }
-</script>
+            methods: {
+                async editImageSuccess(base) {
+                    // base 为编辑之后的图片base64文件
+                },
+            },
+            components: {EditImageDialog},
+        }
+    </script>
+
 ```

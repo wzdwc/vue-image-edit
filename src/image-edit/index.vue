@@ -177,6 +177,8 @@
             },
             selectColor(color) {
                 this.setting.color = color
+                this.drawRectCtx.setting.color = color
+                this.drawLineCtx.setting.color = color
             },
             selectOption(type) {
                 let Obj = {
@@ -301,7 +303,7 @@
             end(e) {
                 if (this.currCtx.setting.type === 'rect') {
                     let {x, y} = this.getPoint(e)
-                    let point = {
+                    let rect = {
                         startPoint: {
                             x: this.currCtx.startPoint.x,
                             y: this.currCtx.startPoint.y
@@ -309,9 +311,10 @@
                         endPoint: {
                             x: x,
                             y: y
-                        }
+                        },
+                        color: this.setting.color
                     }
-                    this.currCtx.rectPoint.push(point)
+                    this.currCtx.rectList.push(rect)
                 }
             },
             imageLoad(img) {
@@ -355,6 +358,11 @@
             },
             async init() {
                 await this.imageInit()
+                // 清除文字
+                this.currentText = ''
+                this.showText = false
+                this.setting.type = 'line'
+                this.setting.color = '#ff2b2b'
                 this.drawLineCtx = new DrawCanvas({
                     canvas : this.$refs.drawCanvasLine,
                     setting: {

@@ -1,6 +1,6 @@
 {
   "name": "vue-image-edit",
-  "version": "1.0.16",
+  "version": "1.0.21",
   "description": "image edit for vue",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,13 @@
     "vue": "^2.3.3",
     "vux": "^2.8.0"
   },
+  "keywords": [
+      "vue",
+      "vue-image",
+      "vue-image-edit",
+      "image-edit",
+      "vue-componet"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wzdwc/vue-image-edit.git"
